@@ -15,19 +15,20 @@ jobs:
       options: --privileged
     steps:
       - uses: actions/checkout@v2
+
       - name: Update keyring
         run: |
           pacman-key --init
           pacman --noconfirm -Sy archlinux-keyring
-        - name: Install archiso
-          run:
-            pacman -Sy
-            pacman --noconfirm -S git archiso
-        - name: Build ISO
-          run: |
-            mkarchiso -v .
-            find out/
-        - uses: actions/upload-artifact@v2
-          with:
-            name: OgeeLinux ISO
-            path: out/*.iso
+      - name: Install archiso
+        run:
+          pacman -Sy
+          pacman --noconfirm -S git archiso
+      - name: Build ISO
+        run: |
+          mkarchiso -v .
+          find out/
+      - uses: actions/upload-artifact@v2
+        with:
+          name: OgeeLinux ISO
+          path: out/*.iso
