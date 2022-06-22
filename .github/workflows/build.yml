@@ -27,7 +27,7 @@ jobs:
           pacman --noconfirm -S git archiso
       - name: Build ISO File
         run: |
-          mkarchiso -v .
+          mkarchiso -v . -w .
           find out/
       - uses: actions/upload-artifact@v2
         with:
