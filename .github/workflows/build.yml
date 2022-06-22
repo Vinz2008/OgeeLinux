@@ -41,4 +41,5 @@ jobs:
           name: Automatic Release
           body: Automatic release with github actions
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: out/*.iso
+          files: |
+            out/*.iso
