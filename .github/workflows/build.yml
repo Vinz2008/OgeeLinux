@@ -16,15 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Update keyring
+      - name: Prepare pacman keyring
         run: |
           pacman-key --init
           pacman --noconfirm -Sy archlinux-keyring
-      - name: Install archiso
+      
+      - name: Install ArchISO
         run: |
-          pacman -Sy  
+          pacman -Sy
           pacman --noconfirm -S git archiso
-      - name: Build ISO
+      - name: Build ISO File
         run: |
           mkarchiso -v .
           find out/
