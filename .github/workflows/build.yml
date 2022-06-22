@@ -31,5 +31,5 @@ jobs:
           find out/
       - uses: actions/upload-artifact@v2
         with:
-          name: OgeeLinux ISO
+          name: OgeeLinuxISO
           path: out/*.iso
