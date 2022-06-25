@@ -1,0 +1,163 @@
+#!/bin/bash
+
+wget -q --spider http://google.com
+if [ $? -eq 0 ]; then
+    echo "You have Internet access"
+else
+    echo -e "You have no Internet connection available"
+fi
+
+cpu_vendor=$(cat /proc/cpuinfo | grep 'vendor' | uniq | cut -c 13-)
+
+if [[ "${cpu_vendor}" == "AuthenticAMD" ]]; then
+	ucode_install_msg="AMD CPU detected, installing AMD ucode..."
+	ucode_install="amd-ucode"
+else
+	ucode_install_msg="Intel CPU detected, installing Intel ucode..."
+	ucode_install="intel-ucode"
+fi
+
+
+
+read -p 'select your keyboard language (see for yours on the archlinux wiki part about loadkeys; for example in french, it is fr-latin9) : ' language_keymap
+
+loadkeys $language_keymap
+
+timedatectl set-ntp true
+
+read -p "On which drive would you want to install the OS ? : " drive
+echo $drive
+
+if [ ! -b $drive ]; then
+	echo "$drive not found ! Installation Aborted !"
+	exit 1
+fi
+
+echo -e "\n All of your data will be lost after the disk will be wiped"
+read -p "$drive will be erased. Begin Installation ? : (y/n)" answer
+if [[ ! ($answer = 'y' || $answer = 'Y') ]]; then
+	echo "Installation Aborted!"
+	exit 1
+fi
+
+install_device="${drive}"
+
+echo ${drive} | grep -q -P "^/dev/(nvme|loop|mmcblk)"
+if [ $? -eq 0 ]; then
+	install_device="${drive}p"
+fi
+
+echo "Creating partitions"
+sfdisk --delete ${drive}
+wipefs -a ${drive}
+parted ${drive} mklabel gpt
+parted ${drive} mkpart primary fat32 2M 256M
+parted ${drive} set 1 boot on
+parted ${drive} set 1 esp on
+parted ${drive} mkpart primary ext4 256M 100%
+
+root_partition="${install_device}2"
+mkfs -t vfat ${install_device}1
+fatlabel ${install_device}1 OGEELINUXEFI
+mkfs -t ext4 ${root_partition}
+e2label ${root_partition} ogeelinux-root
+echo "Partitionning completed"
+
+echo "${ucode_install_msg}"
+
+mount -t ext4 ${root_partition} /mnt
+
+pacstrap /mnt base base-devel ${ucode_install} linux linux-firmware
+
+echo "Pacstrap completed. Rebuilding kernel modules"
+sleep 2
+arch-chroot /mnt depmod -a $(ls /lib/modules)
+arch-chroot /mnt mkinitcpio -P
+
+echo "\nBase system installed. Generating fstab"
+genfstab -U /mnt >> /mnt/etc/fstab
+
+cp /etc/pacman.conf /mnt/etc/pacman.conf
+cp /etc/pacman.d/mirrorlist /mnt/etc/pacman.d/mirrorlist
+
+read -p "What is the hostname for your computer : " hostname
+
+echo ${hostname} > /mnt/etc/hostname
+while true; do
+	read -p "Enter \"root\" password for this installation (will not echo): " root_password
+	echo
+	read -p "Enter \"root\" password for this installation(again): " root_password_confirmation
+	echo
+	if [ $root_password = $root_password_confirmation ]; then
+		break
+	fi
+	echo "Error: Passwords does not match. Try again"
+done
+
+while true; do
+	read  -p"Enter username for this installation: " username
+	if [ $username = "root" ]; then
+		echo "User \"root\" already exists!"
+	else
+		break
+	fi
+done
+
+while true; do
+	read -p "Enter \"$username\" password for this installation (will not echo): " password
+	echo
+	read -p "Enter \"$username\" password for this installation (again): " password_confirmation
+	echo
+	if [ $password = $password_confirmation ]; then
+		break
+	fi
+	echo "Error: Password does not match."
+done
+
+echo "Creating User ${username}"
+echo -e "${root_password}\n${root_password}" | arch-chroot /mnt passwd root
+arch-chroot /mnt useradd --create-home ${username}
+echo -e "${password}\n${password}" | arch-chroot /mnt passwd ${username}
+echo "${username} ALL=(ALL) NOPASSWD:ALL" > /mnt/etc/sudoers.d/${username}
+chmod 0440 /mnt/etc/sudoers.d/${username}
+echo "127.0.1.1    ${hostname}" >> /mnt/etc/hosts
+echo "Installing bootloader"
+
+cmd_pacman_install=(/usr/bin/pacman --noconfirm -S --needed --overwrite="*")
+
+arch-chroot /mnt /usr/bin/pacman -Sy
+mkdir /mnt/boot/efi
+mount -t vfat ${install_device}1 /mnt/boot/efi
+arch-chroot /mnt ${cmd_pacman_install} grub efibootmgr inetutils mkinitcpio neofetch networkmanager
+arch-chroot /mnt systemctl enable NetworkManager systemd-timesyncd
+arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ogeelinux --removable
+arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
+
+echo "Setting up locales"
+read -p "Do you want to set the locale (default : en_US.UTF-8 UTF-8) (y/n) : " answer
+
+locale=en_US
+
+if [[ ! ($answer = 'y' || $answer = 'Y') ]]; then
+	echo "en_US.UTF-8 UTF-8" >> /mnt/etc/locale.gen
+else
+	read -p "what locale do you want (for example en_US or fr_FR) : " locale
+	echo "${locale}.UTF-8 UTF-8" >> /mnt/etc/locale.gen
+fi
+
+arch-chroot /mnt locale-gen
+
+echo "LANG=${locale}.UTF-8" >> /etc/locale.conf
+
+echo "KEYMAP=${language_keymap}" >> /etc/vconsole.conf
+
+echo "Select your continent from this list"
+echo "$(ls /mnt/usr/share/zoneinfo)"
+read ": " continent
+echo "Select your city from this list"
+echo "$(ls /mnt/usr/share/zoneinfo/${continent})"
+read ": " city
+
+ln -sf /mnt/usr/share/zoneinfo/${continent}/${city} /mnt/etc/localtime
+
+echo "Installation ended"
