@@ -66,6 +66,8 @@ echo "Partitionning completed"
 echo "${ucode_install_msg}"
 
 mount -t ext4 ${root_partition} /mnt
+pacman-key --init
+pacman-key --populate archlinux
 pacman -Syy
 
 pacstrap /mnt base base-devel ${ucode_install} linux linux-firmware
