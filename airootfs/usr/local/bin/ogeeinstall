@@ -157,7 +157,7 @@ echo "$(ls /mnt/usr/share/zoneinfo)"
 read ": " continent
 echo "Select your city from this list"
 echo "$(ls /mnt/usr/share/zoneinfo/${continent})"
-read ": " city
+read -p ": " city
 
 ln -sf /mnt/usr/share/zoneinfo/${continent}/${city} /mnt/etc/localtime
 
