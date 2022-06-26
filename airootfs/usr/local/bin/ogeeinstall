@@ -154,7 +154,7 @@ echo "KEYMAP=${language_keymap}" >> /etc/vconsole.conf
 
 echo "Select your continent from this list"
 echo "$(ls /mnt/usr/share/zoneinfo)"
-read ": " continent
+read -p ": " continent
 echo "Select your city from this list"
 echo "$(ls /mnt/usr/share/zoneinfo/${continent})"
 read -p ": " city
