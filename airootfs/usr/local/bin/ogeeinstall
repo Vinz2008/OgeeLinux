@@ -124,12 +124,10 @@ chmod 0440 /mnt/etc/sudoers.d/${username}
 echo "127.0.1.1    ${hostname}" >> /mnt/etc/hosts
 echo "Installing bootloader"
 
-cmd_pacman_install=(/usr/bin/pacman --noconfirm -S --needed --overwrite="*")
-
 arch-chroot /mnt /usr/bin/pacman -Sy
 mkdir /mnt/boot/efi
 mount -t vfat ${install_device}1 /mnt/boot/efi
-arch-chroot /mnt ${cmd_pacman_install} grub efibootmgr inetutils mkinitcpio neofetch networkmanager
+arch-chroot /mnt /usr/bin/pacman --noconfirm -S --needed --overwrite="*" grub efibootmgr inetutils mkinitcpio neofetch networkmanager
 arch-chroot /mnt systemctl enable NetworkManager systemd-timesyncd
 arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ogeelinux --removable
 arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
