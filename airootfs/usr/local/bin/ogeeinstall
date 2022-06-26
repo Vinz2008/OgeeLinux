@@ -151,9 +151,9 @@ fi
 
 arch-chroot /mnt locale-gen
 
-echo "LANG=${locale}.UTF-8" >> /etc/locale.conf
+echo "LANG=${locale}.UTF-8" >> /mnt/etc/locale.conf
 
-echo "KEYMAP=${language_keymap}" > /etc/vconsole.conf
+echo "KEYMAP=${language_keymap}" > /mnt/etc/vconsole.conf
 
 echo "Select your continent from this list"
 echo "$(ls /mnt/usr/share/zoneinfo)"
