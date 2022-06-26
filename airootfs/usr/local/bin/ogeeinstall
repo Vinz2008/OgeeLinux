@@ -124,7 +124,7 @@ chmod 0440 /mnt/etc/sudoers.d/${username}
 echo "127.0.1.1    ${hostname}" >> /mnt/etc/hosts
 echo "Installing bootloader"
 
-arch-chroot /mnt /usr/bin/pacman -Sy
+arch-chroot /mnt /usr/bin/pacman -Sy 
 mkdir /mnt/boot/efi
 mount -t vfat ${install_device}1 /mnt/boot/efi
 arch-chroot /mnt /usr/bin/pacman --noconfirm -S --needed --overwrite="*" grub efibootmgr inetutils mkinitcpio neofetch networkmanager
